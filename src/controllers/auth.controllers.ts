@@ -3,7 +3,7 @@ import { createAccessToken } from '../utils/jwt';
 import { Request, Response } from 'express';
 import jwt, { JwtPayload, TokenExpiredError } from 'jsonwebtoken';
 
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs'; // Cambié a bcryptjs
 import UserSchema from '../models/user.model';
 
 interface CustomJwtPayload extends JwtPayload {
@@ -68,7 +68,7 @@ export const registerController = async (req: Request, res: Response) => {
         .json({ message: 'El correo electrónico ya está registrado.' });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 10); // Aquí también es bcryptjs
 
     const newUser = new UserSchema({
       name,
@@ -116,13 +116,16 @@ export const verifyToken = async (req: Request, res: Response) => {
     ) as CustomJwtPayload;
 
     if (!verifyToken)
-      return res.status(401).json({ message: 'No token, autorización denegada' });
+      return res
+        .status(401)
+        .json({ message: 'No token, autorización denegada' });
 
     const { id } = verifyToken;
 
-    const { _id, name, lastname, email, rol, state } = await UserSchema.findById({
-      _id: id,
-    });
+    const { _id, name, lastname, email, rol, state } =
+      await UserSchema.findById({
+        _id: id,
+      });
 
     if (!_id) return res.status(401).json({ message: 'El usuario no existe' });
 
@@ -136,7 +139,11 @@ export const verifyToken = async (req: Request, res: Response) => {
     });
   } catch (error) {
     if (error instanceof TokenExpiredError) {
-      return res.status(401).json({ message: 'La sesión ha expirado, por favor inicia sesión nuevamente.' });
+      return res
+        .status(401)
+        .json({
+          message: 'La sesión ha expirado, por favor inicia sesión nuevamente.',
+        });
     } else {
       return res.status(500).json({ message: 'ERROR[VERIFY_TOKEN]: ' + error });
     }
