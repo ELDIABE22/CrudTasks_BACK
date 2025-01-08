@@ -1,18 +1,15 @@
 import { Router } from 'express';
 import {
   loginController,
-  logout,
   registerController,
   verifyToken,
 } from '../controllers/auth.controllers';
 import { body } from 'express-validator';
-import { verifyingSession } from '../middlewares/validateSection';
 
 const router = Router();
 
 router.post(
   '/login',
-  verifyingSession,
   body('email')
     .isEmail()
     .withMessage('El correo no es válido')
@@ -27,7 +24,6 @@ router.post(
 
 router.post(
   '/register',
-  verifyingSession,
   body('name')
     .notEmpty()
     .withMessage('El nombre es requerido')
@@ -50,7 +46,5 @@ router.post(
 );
 
 router.get('/verify', verifyToken);
-
-router.post('/logout', logout);
 
 export default router;

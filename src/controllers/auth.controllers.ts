@@ -3,7 +3,7 @@ import { createAccessToken } from '../utils/jwt';
 import { Request, Response } from 'express';
 import jwt, { JwtPayload, TokenExpiredError } from 'jsonwebtoken';
 
-import bcrypt from 'bcryptjs'; // Cambié a bcryptjs
+import bcrypt from 'bcryptjs';
 import UserSchema from '../models/user.model';
 
 interface CustomJwtPayload extends JwtPayload {
@@ -42,10 +42,7 @@ export const loginController = async (req: Request, res: Response) => {
 
     const token = await createAccessToken({ id: verifyCredentials._id });
 
-    return res
-      .status(202)
-      .cookie('token', token)
-      .json({ message: 'Sesión iniciada' });
+    return res.status(202).json({ message: 'Sesión iniciada', token });
   } catch (error) {
     return res.status(500).json({ message: 'ERROR[LOGIN]: ' + error });
   }
@@ -68,7 +65,7 @@ export const registerController = async (req: Request, res: Response) => {
         .json({ message: 'El correo electrónico ya está registrado.' });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10); // Aquí también es bcryptjs
+    const passwordHash = await bcrypt.hash(password, 10);
 
     const newUser = new UserSchema({
       name,
@@ -81,24 +78,14 @@ export const registerController = async (req: Request, res: Response) => {
 
     const token = await createAccessToken({ id: newUser._id });
 
-    return res
-      .status(201)
-      .cookie('token', token)
-      .json({ message: 'Usuario registrado' });
+    return res.status(201).json({ message: 'Usuario registrado', token });
   } catch (error) {
     return res.status(500).json({ message: 'ERROR[REGISTER]: ' + error });
   }
 };
 
-export const logout = (_: Request, res: Response) => {
-  res.cookie('token', '', {
-    expires: new Date(0),
-  });
-  return res.sendStatus(204);
-};
-
 export const verifyToken = async (req: Request, res: Response) => {
-  const { token } = req.cookies;
+  const authHeader = req.headers.authorization;
 
   if (!process.env.JWT_SECRET) {
     throw new Error(
@@ -106,8 +93,11 @@ export const verifyToken = async (req: Request, res: Response) => {
     );
   }
 
-  if (!token)
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'No token, autorización denegada' });
+  }
+
+  const token = authHeader.split(' ')[1];
 
   try {
     const verifyToken = jwt.verify(
@@ -139,11 +129,9 @@ export const verifyToken = async (req: Request, res: Response) => {
     });
   } catch (error) {
     if (error instanceof TokenExpiredError) {
-      return res
-        .status(401)
-        .json({
-          message: 'La sesión ha expirado, por favor inicia sesión nuevamente.',
-        });
+      return res.status(401).json({
+        message: 'La sesión ha expirado, por favor inicia sesión nuevamente.',
+      });
     } else {
       return res.status(500).json({ message: 'ERROR[VERIFY_TOKEN]: ' + error });
     }

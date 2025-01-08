@@ -11,7 +11,7 @@ export const adminRequired = async (
   res: Response,
   next: NextFunction
 ) => {
-  const { token } = req.cookies;
+  const authHeader = req.headers.authorization;
 
   if (!process.env.JWT_SECRET) {
     throw new Error(
@@ -19,8 +19,11 @@ export const adminRequired = async (
     );
   }
 
-  if (!token)
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'No token, autorización denegada' });
+  }
+
+  const token = authHeader.split(' ')[1];
 
   try {
     const verifyToken = jwt.verify(
